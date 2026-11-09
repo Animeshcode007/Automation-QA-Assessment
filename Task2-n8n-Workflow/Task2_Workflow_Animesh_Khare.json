@@ -1,0 +1,270 @@
+{
+  "name": "GitHub Morning Brief - Animesh",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        -368
+      ],
+      "id": "98115bd1-b444-4e79-b40b-b0d92f7c5564",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/search/repositories",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "topic:react"
+            },
+            {
+              "name": "sort",
+              "value": "stars"
+            },
+            {
+              "name": "order",
+              "value": "desc"
+            },
+            {
+              "name": "per_page",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -368,
+        -224
+      ],
+      "id": "a296449b-2e6d-4077-888f-46913b50d220",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst incoming = $input.all().map(item => item.json);\n\nlet repositories = [];\n\n// GitHub search API normally returns an object\n// containing an items array.\nif (incoming.length === 1 && Array.isArray(incoming[0].items)) {\n  repositories = incoming[0].items;\n} else {\n  // Also support input that is already split into repository items.\n  repositories = incoming.filter(\n    repo => repo && typeof repo.full_name === \"string\"\n  );\n}\n\nif (repositories.length === 0) {\n  throw new Error(\"No repositories found. Check the GitHub API response.\");\n}\n\n// Sort repositories by star count, highest first.\nconst top5 = [...repositories]\n  .sort(\n    (a, b) => (b.stargazers_count ?? 0) - (a.stargazers_count ?? 0)\n  )\n  .slice(0, 5)\n  .map(repo => ({\n    id: repo.id,\n    name: repo.name,\n    full_name: repo.full_name,\n    description: repo.description,\n    stars: repo.stargazers_count,\n    language: repo.language,\n    forks: repo.forks_count,\n    url: repo.html_url,\n    updated_at: repo.updated_at\n  }));\n\nreturn [\n  {\n    json: {\n      fetchedCount: repositories.length,\n      selectedCount: top5.length,\n      top5: top5,\n      topRepoFullName: top5[0].full_name,\n      popularThreshold: 50000\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        -80
+      ],
+      "id": "0f3484ce-45b9-4ccd-96ea-79301de61249",
+      "name": "Select Top 5"
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://api.github.com/repos/' + $json.topRepoFullName }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        48,
+        -80
+      ],
+      "id": "afcd3a7e-5fa7-480f-b12f-92ec9b366177",
+      "name": "Get Top Repo Details"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "ca18d833-25a2-4710-92b8-02dc2b7d5796",
+              "leftValue": "={{ $json.stargazers_count }}",
+              "rightValue": 50000,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        240,
+        -288
+      ],
+      "id": "419e2792-fdad-4792-b6d1-2a12e6c4ab8b",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "1550552860",
+        "text": "= {{   '🚀 GITHUB MORNING BRIEF\\n\\n' +   '🔥 HIGH POPULARITY ALERT\\n\\n' +   'TOP 5 REACT REPOSITORIES\\n\\n' +   $('Select Top 5').first().json.top5.map((repo, index) =>     (index + 1) + '. ' + repo.full_name +     '\\n⭐ Stars: ' + Number(repo.stars).toLocaleString() +     '\\nLanguage: ' + (repo.language || 'Unknown') +     '\\nURL: ' + repo.url   ).join('\\n\\n') +   '\\n\\n🏆 FEATURED REPOSITORY DETAILS\\n' +   'Name: ' + $json.full_name +   '\\nStars: ' + Number($json.stargazers_count).toLocaleString() +   '\\nForks: ' + Number($json.forks_count).toLocaleString() +   '\\nOpen issues: ' + $json.open_issues_count +   '\\nLanguage: ' + ($json.language || 'Unknown') +   '\\nURL: ' + $json.html_url }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        464,
+        -384
+      ],
+      "id": "f34a6672-eb96-4370-88c3-0ebc2f7f6a73",
+      "name": "Send a text message",
+      "webhookId": "b3cbb9c5-6dfb-4ea6-8943-0b6d58c3c1a5",
+      "credentials": {
+        "telegramApi": {
+          "id": "JRrQPynqd7zFs9Ds",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "1550552860",
+        "text": "=\n{{\n  '📊 NORMAL POPULARITY REPORT\\n\\n' +\n  'TOP 5 REACT REPOSITORIES\\n\\n' +\n  $('Select Top 5').first().json.top5.map((repo, index) =>\n    (index + 1) + '. ' + repo.full_name +\n    '\\n⭐ Stars: ' + Number(repo.stars).toLocaleString() +\n    '\\nLanguage: ' + (repo.language || 'Unknown') +\n    '\\nURL: ' + repo.url\n  ).join('\\n\\n') +\n  '\\n\\nFeatured repository: ' + $json.full_name +\n  '\\nStars: ' + Number($json.stargazers_count).toLocaleString()\n}}\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        -224
+      ],
+      "id": "ad58bfc9-23bf-451d-9fb4-61554fdfa0ea",
+      "name": "Send Normal Popularity Report",
+      "webhookId": "b3cbb9c5-6dfb-4ea6-8943-0b6d58c3c1a5",
+      "credentials": {
+        "telegramApi": {
+          "id": "JRrQPynqd7zFs9Ds",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -320,
+        -448
+      ],
+      "id": "6efdf81f-5a99-40b3-a1c4-a60ee290a02e",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Select Top 5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Top 5": {
+      "main": [
+        [
+          {
+            "node": "Get Top Repo Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Top Repo Details": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Normal Popularity Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "ZWSE8SwF55P07vkx",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "timezone": "Asia/Kolkata",
+    "executionTimeout": -1,
+    "redactCallerExecutions": true
+  },
+  "versionId": "3fb60115-19c9-4dfd-aaea-cc7329fa49a4",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "67e9dc7ca5bb39c7f7765940d5f9525487c7af5513d8d56a7bbbfcc96fda7edd"
+  },
+  "nodeGroups": [],
+  "id": "FnrO1W4TRcGHh3EU",
+  "tags": []
+}

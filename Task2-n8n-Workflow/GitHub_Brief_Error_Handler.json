@@ -1,0 +1,65 @@
+{
+  "name": "GitHub Brief Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -192
+      ],
+      "id": "398ded3b-3807-409d-8013-d9e970cf85ce",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "chatId": "1550552860",
+        "text": "=\n{{\n  '🚨 GITHUB MORNING BRIEF - WORKFLOW ERROR\\n\\n' +\n  'Workflow: ' + $json.workflow.name +\n  '\\nFailed node: ' + $json.execution.lastNodeExecuted +\n  '\\nError: ' + $json.execution.error.message +\n  '\\nExecution ID: ' + ($json.execution.id || 'Unavailable') +\n  '\\n\\nPlease investigate the failure in n8n.'\n}}\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -112,
+        -192
+      ],
+      "id": "d425d49c-5cc5-4aad-acf3-4dec7a8b0ab8",
+      "name": "Send a text message",
+      "webhookId": "45de9b0a-a530-4f95-be3b-8893ae63f809",
+      "credentials": {
+        "telegramApi": {
+          "id": "JRrQPynqd7zFs9Ds",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "91229816-32f3-4ce8-99af-a14a652a9eac",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "67e9dc7ca5bb39c7f7765940d5f9525487c7af5513d8d56a7bbbfcc96fda7edd"
+  },
+  "nodeGroups": [],
+  "id": "ZWSE8SwF55P07vkx",
+  "tags": []
+}
